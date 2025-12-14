@@ -32,7 +32,7 @@ def fork_terminal(command: str) -> str:
     elif system == "Windows":
         # Use /d flag to change drives if necessary
         full_command = f'cd /d "{cwd}" && {command}'
-        subprocess.Popen(["cmd", "/c", "start", "cmd", "/k", full_command], shell=True)
+        subprocess.Popen(["PowerShell", "/c", "start", "PowerShell", "/k", full_command], shell=True)
         return "Windows terminal launched"
 
     else:  # Linux and others
