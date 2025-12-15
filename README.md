@@ -1,13 +1,13 @@
-# Fork Terminal Skill
-> A simple skill you can use to fork your agentic coding tools to a new terminal window.
+# promptbox.pro
+> Fork your agentic coding tools to new terminal windows with a powerful web UI.
 >
 > Why? To offload context (delegate), to branch work, to parallelize work, to run the same command against different tools + models, and more.
 >
 > Check out this [YouTube video](https://youtu.be/X2ciJedw2vU) where we build this skill from scratch.
 
-<img src="images/fork-terminal.png" alt="Fork Terminal Skill" width="800">
+<img src="images/fork-terminal.png" alt="promptbox.pro" width="800">
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that enables AI agents to spawn new terminal windows on demand. This skill extends Claude Code's capabilities to launch additional terminal sessions—including other AI coding assistants like Claude Code, Codex CLI, and Gemini CLI—in parallel terminals.
+A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill + web UI that enables AI agents to spawn new terminal windows on demand. Launch additional terminal sessions—including other AI coding assistants like Claude Code, Codex CLI, and Gemini CLI—in parallel terminals.
 
 ## Requirements
 
@@ -157,30 +157,119 @@ These examples demonstrate usage patterns for other projects.
 ## Architecture
 
 ```
-.claude/skills/fork-terminal/
-├── SKILL.md                    # Skill definition and workflow
-├── cookbook/
-│   ├── cli-command.md          # Raw CLI instructions
-│   ├── claude-code.md          # Claude Code agent instructions
-│   ├── codex-cli.md            # Codex CLI instructions
-│   └── gemini-cli.md           # Gemini CLI instructions
-├── prompts/
-│   └── fork_summary_user_prompt.md  # Template for context handoff
-└── tools/
-    └── fork_terminal.py        # Cross-platform terminal spawner
+fork-repository-skill/
+├── .claude/skills/fork-terminal/   # Claude Code skill (existing)
+│   ├── SKILL.md                    # Skill definition and workflow
+│   ├── cookbook/
+│   │   ├── cli-command.md          # Raw CLI instructions
+│   │   ├── claude-code.md          # Claude Code agent instructions
+│   │   ├── codex-cli.md            # Codex CLI instructions
+│   │   └── gemini-cli.md           # Gemini CLI instructions
+│   ├── prompts/
+│   │   └── fork_summary_user_prompt.md  # Template for context handoff
+│   └── tools/
+│       └── fork_terminal.py        # Cross-platform terminal spawner
+├── api/                            # FastAPI backend (new)
+│   ├── main.py                     # API routes and WebSocket
+│   ├── models.py                   # Pydantic models
+│   ├── fork_manager.py             # Fork spawning and tracking
+│   └── cookbook_parser.py          # Parse cookbook configs
+├── src/                            # React frontend (new)
+│   ├── App.tsx
+│   ├── components/
+│   │   └── ForkTerminalUI.tsx      # Main UI component
+│   ├── hooks/
+│   │   └── useForks.ts             # React hooks for API
+│   ├── api/
+│   │   └── client.ts               # API client
+│   └── types/
+│       └── index.ts                # TypeScript types
+├── package.json                    # Node.js dependencies
+├── requirements.txt                # Python dependencies
+├── run.ps1                         # Windows start script
+├── run.sh                          # macOS/Linux start script
+└── vite.config.ts                  # Vite configuration
 ```
 
 ## Platform Support
 
-| Platform    | Status              | Method                     |
-| ----------- | ------------------- | -------------------------- |
-| **macOS**   | Supported           | AppleScript → Terminal.app |
-| **Windows** | Supported           | `cmd /k` via `start`       |
-| **Linux**   | Not yet implemented | —                          |
+| Platform    | Status    | Method                                                                                   |
+| ----------- | --------- | ---------------------------------------------------------------------------------------- |
+| **macOS**   | Supported | AppleScript → Terminal.app                                                               |
+| **Windows** | Supported | PowerShell `Start-Process`                                                               |
+| **Linux**   | Supported | Auto-detects: gnome-terminal, konsole, xfce4-terminal, alacritty, kitty, wezterm, xterm |
 
 ## Installation
 
 Copy the `.claude/skills/fork-terminal/` directory to your project's `.claude/skills/` folder, or to `~/.claude/skills/` for personal use across all projects.
+
+## Web UI
+
+The promptbox.pro web interface provides a command center for controlling and monitoring fork operations:
+
+- **Agent Selection** - Choose between Claude Code, Codex CLI, Gemini CLI, or Raw CLI
+- **Model Tiers** - Select Fast/Default/Heavy models for each agent
+- **Quick Presets** - Pre-configured common tasks
+- **Real-time Monitoring** - Track active forks with progress indicators
+- **Terminal Output** - View spawn logs in real-time
+- **Fork History** - Review past fork operations
+
+### Quick Start
+
+**Prerequisites:**
+- Python 3.8+ with pip
+- Node.js 18+ with npm
+
+**Windows (PowerShell):**
+```powershell
+# Start both API and UI
+.\run.ps1
+
+# Or start individually
+.\run.ps1 -ApiOnly    # API on port 8000
+.\run.ps1 -UiOnly     # UI on port 5173
+```
+
+**macOS/Linux:**
+```bash
+# Make the script executable
+chmod +x run.sh
+
+# Start both API and UI
+./run.sh
+
+# Or start individually
+./run.sh api    # API on port 8000
+./run.sh ui     # UI on port 5173
+```
+
+**Manual Start:**
+```bash
+# Terminal 1: Start the API
+python -m venv venv
+source venv/bin/activate  # Windows: .\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn api.main:app --reload --port 8000
+
+# Terminal 2: Start the UI
+npm install
+npm run dev
+```
+
+Then open http://localhost:5173 in your browser.
+
+### API Endpoints
+
+| Endpoint             | Method | Description                   |
+| -------------------- | ------ | ----------------------------- |
+| `/api/agents`        | GET    | Get available agent configs   |
+| `/api/forks`         | GET    | List all forks                |
+| `/api/forks`         | POST   | Create and spawn a new fork   |
+| `/api/forks/{id}`    | GET    | Get fork details              |
+| `/api/forks/{id}`    | DELETE | Terminate a fork              |
+| `/api/presets`       | GET    | Get quick presets             |
+| `/api/ws`            | WS     | WebSocket for real-time updates |
+| `/api/health`        | GET    | Health check                  |
 
 ## Improvements
 
@@ -188,6 +277,9 @@ Ideas for future enhancements:
 
 - **Focus spawned windows** - Bring new terminal windows to front automatically, or keep them in background based on user preference
 - **More agentic coding tools** - Add cookbooks for OpenCode, and other agentic coding tools.
+- **Output streaming** - Stream terminal output back to the UI in real-time
+- **Saved workflows** - Save and replay common fork configurations
+- **Multi-fork launch** - Launch multiple agents in parallel with one click
 - **Whatever else you can think of** - Feel free to fork the terminal fork skill and make it your own.
 
 ## Master **Agentic Coding**
