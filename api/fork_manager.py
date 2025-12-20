@@ -136,12 +136,24 @@ class ForkManager:
         elif system == "Windows":
             import tempfile
 
-            # Write command to a temp batch file to avoid escaping issues
+            # Replace newlines in command with spaces to avoid multi-line issues
+            # (prompts with newlines would break command parsing)
+            single_line_command = command.replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
+
+            # Write a PowerShell script that runs the command directly
             with tempfile.NamedTemporaryFile(mode='w', suffix='.ps1', delete=False, encoding='utf-8') as f:
                 f.write(f"Set-Location -Path '{cwd}'\n")
-                f.write(f"{command}\n")
+                f.write("Write-Host 'Starting fork...' -ForegroundColor Cyan\n")
                 f.write("Write-Host ''\n")
-                f.write("Write-Host 'Press any key to exit...' -ForegroundColor Gray\n")
+                # Escape single quotes in the command for PowerShell
+                escaped_command = single_line_command.replace("'", "''")
+                f.write(f"$cmd = '{escaped_command}'\n")
+                f.write("Write-Host \"Executing: $cmd\" -ForegroundColor DarkGray\n")
+                f.write("Write-Host ''\n")
+                # Execute using Invoke-Expression
+                f.write("Invoke-Expression $cmd\n")
+                f.write("Write-Host ''\n")
+                f.write("Write-Host 'Fork completed. Press any key to exit...' -ForegroundColor Gray\n")
                 f.write("$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')\n")
                 script_path = f.name
 
